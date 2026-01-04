@@ -3,6 +3,7 @@
 
 struct Node {
     int data;
+    struct Node* prev;
     struct Node* next;
 };
 
@@ -11,12 +12,12 @@ struct Node* head = NULL;
 /* Function declarations */
 void insertion_at_begin(int x);
 void insertion_at_end(int x);
-void insertion_at_pos(int pos, int value);
+void insertion_at_pos(int key, int value);
 void deletion_begin();
 void deletion_end();
 void deletion_pos(int pos);
-void search(int key);
 int count_node();
+void search(int key);
 void display();
 
 /* Create new node */
@@ -24,6 +25,7 @@ struct Node* get_node(int x) {
     struct Node* p = (struct Node*)malloc(sizeof(struct Node));
     p->data = x;
     p->next = NULL;
+    p->prev = NULL;
     return p;
 }
 
@@ -33,16 +35,11 @@ void insertion_at_begin(int x) {
 
     if (head == NULL) {
         head = temp;
-        temp->next = head;
         return;
     }
 
-    struct Node* curr = head;
-    while (curr->next != head)
-        curr = curr->next;
-
     temp->next = head;
-    curr->next = temp;
+    head->prev = temp;
     head = temp;
 }
 
@@ -52,40 +49,37 @@ void insertion_at_end(int x) {
 
     if (head == NULL) {
         head = temp;
-        temp->next = head;
         return;
     }
 
     struct Node* curr = head;
-    while (curr->next != head)
+    while (curr->next != NULL)
         curr = curr->next;
 
     curr->next = temp;
-    temp->next = head;
+    temp->prev = curr;
 }
 
-/* Insert at position (0-based) */
-void insertion_at_pos(int pos, int value) {
-    if (pos == 0) {
-        insertion_at_begin(value);
-        return;
-    }
-
+/* Insert after a given key */
+void insertion_at_pos(int key, int value) {
     struct Node* curr = head;
-    int count = 0;
 
-    while (curr->next != head && count < pos - 1) {
+    while (curr != NULL && curr->data != key)
         curr = curr->next;
-        count++;
-    }
 
-    if (count != pos - 1) {
-        printf("Invalid position\n");
+    if (curr == NULL) {
+        printf("Key not found\n");
         return;
     }
 
     struct Node* temp = get_node(value);
+
     temp->next = curr->next;
+    temp->prev = curr;
+
+    if (curr->next != NULL)
+        curr->next->prev = temp;
+
     curr->next = temp;
 }
 
@@ -96,19 +90,12 @@ void deletion_begin() {
         return;
     }
 
-    if (head->next == head) {
-        free(head);
-        head = NULL;
-        return;
-    }
-
-    struct Node* curr = head;
-    while (curr->next != head)
-        curr = curr->next;
-
     struct Node* temp = head;
     head = head->next;
-    curr->next = head;
+
+    if (head != NULL)
+        head->prev = NULL;
+
     free(temp);
 }
 
@@ -119,21 +106,17 @@ void deletion_end() {
         return;
     }
 
-    if (head->next == head) {
+    if (head->next == NULL) {
         free(head);
         head = NULL;
         return;
     }
 
     struct Node* curr = head;
-    struct Node* prev = NULL;
-
-    while (curr->next != head) {
-        prev = curr;
+    while (curr->next != NULL)
         curr = curr->next;
-    }
 
-    prev->next = head;
+    curr->prev->next = NULL;
     free(curr);
 }
 
@@ -150,89 +133,79 @@ void deletion_pos(int pos) {
     }
 
     struct Node* curr = head;
-    struct Node* prev = NULL;
     int count = 0;
 
-    while (curr->next != head && count < pos) {
-        prev = curr;
+    while (curr != NULL && count < pos) {
         curr = curr->next;
         count++;
     }
 
-    if (count != pos) {
+    if (curr == NULL) {
         printf("Invalid position\n");
         return;
     }
 
-    prev->next = curr->next;
+    curr->prev->next = curr->next;
+
+    if (curr->next != NULL)
+        curr->next->prev = curr->prev;
+
     free(curr);
+}
+
+/* Count nodes */
+int count_node() {
+    int count = 0;
+    struct Node* temp = head;
+
+    while (temp != NULL) {
+        count++;
+        temp = temp->next;
+    }
+    return count;
 }
 
 /* Search element */
 void search(int key) {
-    if (head == NULL) {
-        printf("List is empty\n");
-        return;
-    }
-
     struct Node* temp = head;
     int pos = 0;
 
-    do {
+    while (temp != NULL) {
         if (temp->data == key) {
             printf("Element %d found at position %d\n", key, pos);
             return;
         }
         temp = temp->next;
         pos++;
-    } while (temp != head);
-
+    }
     printf("Element not found\n");
-}
-
-/* Count nodes */
-int count_node() {
-    if (head == NULL)
-        return 0;
-
-    int count = 0;
-    struct Node* temp = head;
-
-    do {
-        count++;
-        temp = temp->next;
-    } while (temp != head);
-
-    return count;
 }
 
 /* Display list */
 void display() {
-    if (head == NULL) {
+    struct Node* temp = head;
+    if (temp == NULL) {
         printf("List is empty\n");
         return;
     }
 
-    struct Node* temp = head;
-    printf("Circular Linked List: ");
-
-    do {
-        printf("%d -> ", temp->data);
+    printf("Doubly Linked List: ");
+    while (temp != NULL) {
+        printf("%d <-> ", temp->data);
         temp = temp->next;
-    } while (temp != head);
-
-    printf("(head)\n");
+    }
+    printf("NULL\n");
 }
 
 /* Main function */
 int main() {
-    int choice, x, pos, key;
+    int choice, x, key, pos;
 
     do {
-        printf("\n--- CIRCULAR LINKED LIST MENU ---\n");
+        printf("\n--- DOUBLY LINKED LIST MENU ---\n");
         printf("1. Insert at Beginning\n");
         printf("2. Insert at End\n");
-        printf("3. Insert at Position\n");
+        printf("3. Insert after a Key\n");
         printf("4. Delete from Beginning\n");
         printf("5. Delete from End\n");
         printf("6. Delete at Position\n");
@@ -257,9 +230,9 @@ int main() {
             break;
 
         case 3:
-            printf("Enter position and value: ");
-            scanf("%d %d", &pos, &x);
-            insertion_at_pos(pos, x);
+            printf("Enter key and value: ");
+            scanf("%d %d", &key, &x);
+            insertion_at_pos(key, x);
             break;
 
         case 4:
