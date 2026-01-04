@@ -36,4 +36,3 @@ int main()
     insert_into_queue(10);
     remove_from_queue();
     return 0;
-}
